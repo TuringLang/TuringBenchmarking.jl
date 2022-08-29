@@ -1,0 +1,20 @@
+name = "TuringBenchmarking"
+uuid = "533a6bba-0eb4-4a91-ae72-a03c864bfafd"
+authors = ["Tor Erlend Fjelde <tor.erlend95@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+LogDensityProblems = "6fdf6af0-433a-55f7-b3ed-c6c6e0b8df7c"
+PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
+ReverseDiff = "37e2e3b7-166d-5795-8a7a-e32c996b4267"
+Turing = "fce5fe82-541a-59a6-adf8-730c64b5f9a0"
+Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
+
+[compat]
+BenchmarkTools = "1"
+LogDensityProblems = "0.12"
+PyCall = "1.94"
+ReverseDiff = "1.14"
+Turing = "0.21.11"
+Zygote = "0.6"
