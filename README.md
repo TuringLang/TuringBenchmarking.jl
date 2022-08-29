@@ -26,10 +26,12 @@ Example output:
   tags: []
   "linked" => 2-element BenchmarkTools.BenchmarkGroup:
           tags: []
+          "evaluation" => Trial(1.132 ms)
           "Turing.Essential.ReverseDiffAD{true}()" => Trial(1.598 ms)
           "Turing.Essential.ForwardDiffAD{40, true}()" => Trial(184.703 ms)
   "not_linked" => 2-element BenchmarkTools.BenchmarkGroup:
           tags: []
+          "evaluation" => Trial(1.131 ms)
           "Turing.Essential.ReverseDiffAD{true}()" => Trial(1.596 ms)
           "Turing.Essential.ForwardDiffAD{40, true}()" => Trial(182.864 ms)
 ```
