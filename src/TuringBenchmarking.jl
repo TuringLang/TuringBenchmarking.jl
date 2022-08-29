@@ -92,9 +92,9 @@ function make_turing_suite(
     end
 
     # Also benchmark just standard model evaluation because why not.
-    suite["not_linked"]["evaluation"] = @benchmarkable DynamicPPL.evaluate!!(model, vi_orig, DynamicPPL.DefaultContext())
+    suite["not_linked"]["evaluation"] = @benchmarkable $(DynamicPPL.evaluate!!)($model, $vi_orig, $(DynamicPPL.DefaultContext()))
     DynamicPPL.link!(vi_orig, spl)
-    suite["linked"]["evaluation"] = @benchmarkable DynamicPPL.evaluate!!(model, vi_orig, DynamicPPL.DefaultContext())
+    suite["linked"]["evaluation"] = @benchmarkable $(DynamicPPL.evaluate!!)($model, $vi_orig, $(DynamicPPL.DefaultContext()))
 
     return save_grads ? (suite, grads) : suite
 end
