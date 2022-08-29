@@ -89,18 +89,22 @@ function make_turing_suite(
             end
         end
         suite["linked"]["$(adbackend)"] = @benchmarkable $(LogDensityProblems.logdensity_and_gradient)($f_linked, $θ_linked)
-
     end
+
+    # Also benchmark just standard model evaluation because why not.
+    suite["not_linked"]["evaluation"] = @benchmarkable DynamicPPL.evaluate!!(model, vi_orig, DynamicPPL.DefaultContext())
+    DynamicPPL.link!(vi_orig, spl)
+    suite["linked"]["evaluation"] = @benchmarkable DynamicPPL.evaluate!!(model, vi_orig, DynamicPPL.DefaultContext())
 
     return save_grads ? (suite, grads) : suite
 end
 
 """
-    args_to_stan_data(model::DynamicPPL.Model)
+    extract_stan_data(model::DynamicPPL.Model)
 
 Return a `Dict` which can be consumed by the corresponding Stan model.
 """
-function args_to_stan_data end
+function extract_stan_data end
 
 """
     stan_model_string(model::DynamicPPL.Model)
@@ -141,7 +145,7 @@ function make_stan_suite(
     )
 
     # Convert the data/observations into something consumable by the Stan model.
-    data = args_to_stan_data(model)
+    data = extract_stan_data(model)
 
     # Run a tiny bit of sampling because we need the resulting object to compute gradients.
     f = sm.sampling(

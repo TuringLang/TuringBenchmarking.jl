@@ -66,7 +66,7 @@ suite = TuringBenchmarking.make_turing_suite(
 @info "Compiling Stan model..."
 
 # Tell `TuringBenchmarking` how to convert `model` into data consumable by Stan.
-function TuringBenchmarking.args_to_stan_data(model::DynamicPPL.Model{typeof(irt)})
+function TuringBenchmarking.extract_stan_data(model::DynamicPPL.Model{typeof(irt)})
     args = Dict(zip(string.(keys(model.args)), values(model.args)))
     args["N"] = args["I"] * args["P"]
     return args
