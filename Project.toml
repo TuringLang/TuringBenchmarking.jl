@@ -13,7 +13,7 @@ Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
 BenchmarkTools = "1"
-LogDensityProblems = "0.12"
+LogDensityProblems = "0.12, 1"
 PyCall = "1.94"
 ReverseDiff = "1.14"
 Turing = "0.21.11"
