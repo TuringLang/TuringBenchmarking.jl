@@ -3,6 +3,7 @@ module TuringBenchmarking
 using BenchmarkTools
 
 using LogDensityProblems
+using LogDensityProblemsAD
 using Turing
 using Turing.Essential: ForwardDiffAD, TrackerAD, ReverseDiffAD, ZygoteAD, CHUNKSIZE
 
@@ -57,7 +58,7 @@ function make_turing_suite(
 
     for adbackend in adbackends
         vi = DynamicPPL.VarInfo(vi_orig, spl, vi_orig[spl])
-        f = LogDensityProblems.ADgradient(
+        f = LogDensityProblemsAD.ADgradient(
             adbackend,
             Turing.LogDensityFunction(vi, model, spl, DynamicPPL.DefaultContext())
         )
@@ -76,7 +77,7 @@ function make_turing_suite(
         # `vi` from above being mutated.
         vi_linked = deepcopy(vi)
         DynamicPPL.link!(vi_linked, spl)
-        f_linked = LogDensityProblems.ADgradient(
+        f_linked = LogDensityProblemsAD.ADgradient(
             adbackend,
             Turing.LogDensityFunction(vi_linked, model, spl, DynamicPPL.DefaultContext())
         )
