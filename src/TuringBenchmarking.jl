@@ -12,8 +12,16 @@ using PyCall
 
 const pystan = PyNULL()
 
-function __init__()
+function init_pystan()
     copy!(pystan, pyimport_conda("pystan", "pystan", "conda-forge"))
+end
+
+function __init__()
+    try
+        init_pystan()
+    catch e
+        @warn "Failed to import PyStan; related functionality will not work. Try manually calling `TuringBenchmarking.init_pystan()` for more info."
+    end
 end
 
 # Don't include `TrackerAD` because it's never going to win.
