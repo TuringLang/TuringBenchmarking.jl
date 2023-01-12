@@ -1,6 +1,6 @@
 name = "TuringBenchmarking"
-uuid = "533a6bba-0eb4-4a91-ae72-a03c864bfafd"
-authors = ["Tor Erlend Fjelde <tor.erlend95@gmail.com>"]
+uuid = "0db1332d-5c25-4deb-809f-459bc696f94f"
+authors = ["Tor Erlend Fjelde <tor.erlend95@gmail.com> and contributors"]
 version = "0.1.0"
 
 [deps]
