@@ -18,7 +18,7 @@ const DEFAULT_ADBACKENDS = [
 ]
 
 """
-    make_turing_suite(model; kwargs...)
+    make_turing_suite(model::Turing.Model; kwargs...)
 
 Create default benchmark suite for `model`.
 
@@ -111,6 +111,11 @@ Return a string defining the Stan model corresponding to `model`.
 """
 function stan_model_string end
 
+"""
+    make_stan_suite(model::Turing.Model; kwargs...)
+
+Create default benchmark suite for the Stan model corresponding to `model`.
+"""
 function make_stan_suite end
 
 # This symbol is only defined on Julia versions that support extensions
