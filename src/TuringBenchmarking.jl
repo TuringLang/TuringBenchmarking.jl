@@ -20,8 +20,7 @@ export benchmark_model, make_turing_suite, @tagged
 
 # Don't include `TrackerAD` because it's never going to win.
 const DEFAULT_ADBACKENDS = [
-    ForwardDiffAD{40}(),    # chunksize=40
-    ForwardDiffAD{100}(),   # chunksize=100
+    ForwardDiffAD{}(Turing.Essential.CHUNKSIZE[]), # chunksize=40
     ZygoteAD(),
     ReverseDiffAD{false}(), # rdcache=false
     ReverseDiffAD{true}()   # rdcache=false
@@ -33,7 +32,7 @@ backend_label(::ZygoteAD) = "Zygote"
 backend_label(::TrackerAD) = "Tracker"
 
 const SYMBOL_TO_BACKEND = Dict(
-    :forwarddiff => ForwardDiffAD{40}(),
+    :forwarddiff => ForwardDiffAD{Turing.Essential.CHUNKSIZE[]}(),
     :reversediff => ReverseDiffAD{false}(),
     :reversediff_compiled => ReverseDiffAD{true}(),
     :zygote => ZygoteAD(),
