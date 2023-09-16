@@ -6,6 +6,11 @@ using Test
 using Zygote: Zygote
 using ReverseDiff: ReverseDiff
 
+# Just make things run a bit faster.
+BenchmarkTools.DEFAULT_PARAMETERS.seconds = 1
+BenchmarkTools.DEFAULT_PARAMETERS.evals = 1
+BenchmarkTools.DEFAULT_PARAMETERS.samples = 2
+
 # These should be ordered (ascendingly) by runtime.
 ADBACKENDS = [
     TuringBenchmarking.ForwardDiffAD{40}(),
