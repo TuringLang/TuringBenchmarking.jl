@@ -32,6 +32,18 @@ backend_label(::ReverseDiffAD) = "ReverseDiff"
 backend_label(::ZygoteAD) = "Zygote"
 backend_label(::TrackerAD) = "Tracker"
 
+const SYMBOL_TO_BACKEND = Dict(
+    :forwarddiff => ForwardDiffAD{40}(),
+    :reversediff => ReverseDiffAD{false}(),
+    :reversediff_compiled => ReverseDiffAD{true}(),
+    :zygote => ZygoteAD(),
+    :tracker => TrackerAD(),
+)
+
+to_backend(x) = error("Unknown backend: $x")
+to_backend(x::Symbol) = get(SYMBOL_TO_BACKEND, lowercase(x), error("Unknown backend: $x"))
+to_backend(x::Turing.Essential.ADBackend) = x
+
 """
     benchmark_model(model::Turing.Model; suite_kwargs..., kwargs...)
 
@@ -111,7 +123,7 @@ function make_turing_suite(
         context = DynamicPPL.SamplingContext(sampler, context)
     end
 
-    for adbackend in adbackends
+    for adbackend in map(to_backend, adbackends)
         suite_backend = BenchmarkGroup([backend_label(adbackend)])
         suite_gradient["$(adbackend)"] = suite_backend
 
