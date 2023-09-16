@@ -58,7 +58,8 @@ ADBACKENDS = [
             suite = TuringBenchmarking.make_turing_suite(
                 model;
                 adbackends=ADBACKENDS,
-                varinfo=varinfo
+                varinfo=varinfo,
+                check_grads=true,
             )
             results = run(suite, verbose=true, evals=1, samples=2)
 
@@ -75,6 +76,7 @@ ADBACKENDS = [
             end
         end
     end
+
 
     @testset "Model with mutation" begin
         @model function demo_with_mutation(::Type{TV}=Vector{Float64}) where {TV}

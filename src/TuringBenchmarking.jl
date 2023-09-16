@@ -48,7 +48,7 @@ function benchmark_model(
     model::DynamicPPL.Model;
     adbackends = DEFAULT_ADBACKENDS,
     run_once::Bool = true,
-    save_grads::Bool = false,
+    check_grads::Bool = false,
     varinfo::DynamicPPL.AbstractVarInfo = DynamicPPL.VarInfo(model),
     sampler::Union{AbstractMCMC.AbstractSampler,Nothing} = nothing,
     context::DynamicPPL.AbstractContext = DynamicPPL.DefaultContext(),
@@ -59,7 +59,7 @@ function benchmark_model(
         model;
         adbackends,
         run_once,
-        save_grads,
+        check_grads,
         varinfo,
         sampler,
         context,
@@ -78,9 +78,8 @@ Create default benchmark suite for `model`.
 - `run_once=true`: if `true`, the body of each benchmark will be run once to avoid
   compilation to be included in the timings (this may occur if compilation runs
   longer than the allowed time limit).
-- `save_grads=false`: if `true` and `run_once` is `true`, the gradients from the initial
-  execution will be saved and returned as the second return-value. This is useful if you
-  want to check correctness of the gradients for different backends.
+- `check_grads=false`: if `true` and `run_once` is `true`, the gradients from the initial
+  execution will be compared against each other to ensure that they are consistent.
 - `varinfo`: the `VarInfo` to use. Defaults to `DynamicPPL.VarInfo(model)`.
 - `sampler`: the `Sampler` to use. Defaults to `nothing` (i.e. no sampler).
 - `context`: the `Context` to use. Defaults to `DynamicPPL.DefaultContext()`.
@@ -94,7 +93,7 @@ function make_turing_suite(
     model::DynamicPPL.Model;
     adbackends = DEFAULT_ADBACKENDS,
     run_once::Bool = true,
-    save_grads::Bool = false,
+    check_grads::Bool = false,
     varinfo::DynamicPPL.AbstractVarInfo = DynamicPPL.VarInfo(model),
     sampler::Union{AbstractMCMC.AbstractSampler,Nothing} = nothing,
     context::DynamicPPL.AbstractContext = DynamicPPL.DefaultContext()
@@ -132,7 +131,7 @@ function make_turing_suite(
             if run_once
                 ℓ, ∇ℓ = LogDensityProblems.logdensity_and_gradient(f, θ)
 
-                if save_grads
+                if check_grads
                     grads[:standard][adbackend] = (ℓ, ∇ℓ)
                 end
             end
@@ -158,7 +157,7 @@ function make_turing_suite(
             if run_once
                 ℓ, ∇ℓ = LogDensityProblems.logdensity_and_gradient(f_linked, θ_linked)
 
-                if save_grads
+                if check_grads
                     grads[:linked][adbackend] = (ℓ, ∇ℓ)
                 end
             end
@@ -181,21 +180,21 @@ function make_turing_suite(
         $model, $varinfo_linked, $context
     )
 
-    if save_grads
+    if check_grads
         # Let's check that the gradients are roughly the same for all backends.
         (val_first, grad_first) = first(values(grads[:standard]))
         for (backend, (val, grad)) in grads[:standard]
-            if !(val ≊ val_first)
+            if !(val ≈ val_first)
                 @warn "Gradient check failed for $(backend): log-density values differ"
             end
 
-            if !(grad ≊ grad_first)
+            if !(grad ≈ grad_first)
                 @warn "Gradient check failed for $(backend): gradients differ"
             end
         end
     end
     
-    return save_grads ? (suite, grads) : suite
+    return suite
 end
 
 """
