@@ -126,7 +126,6 @@ end
 
 # This symbol is only defined on Julia versions that support extensions
 @static if !isdefined(Base, :get_extension)
-    using Requires
     function __init__()
         @require BridgeStan = "c88b6f0a-829e-4b0b-94b7-f06ab5908f5a" include("../ext/TuringBenchmarkingBridgeStanExt.jl")
     end
