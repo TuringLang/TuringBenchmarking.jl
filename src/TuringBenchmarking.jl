@@ -6,7 +6,8 @@ using LogDensityProblems
 using LogDensityProblemsAD
 
 using Turing
-using Turing.Essential: ForwardDiffAD, TrackerAD, ReverseDiffAD, ZygoteAD, CHUNKSIZE
+using Turing.Essential: ForwardDiffAD, TrackerAD, ReverseDiffAD, ZygoteAD
+using DynamicPPL: DynamicPPL
 
 if !isdefined(Base, :get_extension)
     using Requires
@@ -34,6 +35,9 @@ Create default benchmark suite for `model`.
 - `save_grads=false`: if `true` and `run_once` is `true`, the gradients from the initial
   execution will be saved and returned as the second return-value. This is useful if you
   want to check correctness of the gradients for different backends.
+- `varinfo`: the `VarInfo` to use. Defaults to `DynamicPPL.VarInfo(model)`.
+- `sampler`: the `Sampler` to use. Defaults to `nothing` (i.e. no sampler).
+- `context`: the `Context` to use. Defaults to `DynamicPPL.DefaultContext()`.
 
 # Notes
 - A separate "parameter" instance (`DynamicPPL.VarInfo`) will be created for _each test_.
@@ -42,7 +46,12 @@ Create default benchmark suite for `model`.
 """
 function make_turing_suite(
     model::DynamicPPL.Model;
-    adbackends = DEFAULT_ADBACKENDS, run_once = true, save_grads = false
+    adbackends = DEFAULT_ADBACKENDS,
+    run_once::Bool = true,
+    save_grads::Bool = false,
+    varinfo::DynamicPPL.AbstractVarInfo = DynamicPPL.VarInfo(model),
+    sampler::Union{AbstractMCMC.AbstractSampler,Nothing} = nothing,
+    context::DynamicPPL.AbstractContext = DynamicPPL.DefaultContext()
 )
     suite = BenchmarkGroup()
     suite["not_linked"] = BenchmarkGroup()
@@ -50,16 +59,20 @@ function make_turing_suite(
 
     grads = Dict(:not_linked => Dict(), :linked => Dict())
 
-    vi_orig = DynamicPPL.VarInfo(model)
-    spl = DynamicPPL.SampleFromPrior()
+    indexer = sampler === nothing ? Colon() : sampler
+    if sampler !== nothing
+        context = DynamicPPL.SamplingContext(sampler, context)
+    end
 
     for adbackend in adbackends
-        vi = DynamicPPL.VarInfo(vi_orig, spl, vi_orig[spl])
+        varinfo_current = DynamicPPL.unflatten(varinfo, context, varinfo[indexer])
         f = LogDensityProblemsAD.ADgradient(
             adbackend,
-            Turing.LogDensityFunction(vi, model, spl, DynamicPPL.DefaultContext())
+            DynamicPPL.LogDensityFunction(
+                varinfo_current, model, context
+            )
         )
-        θ = vi[spl]
+        θ = varinfo_current[indexer]
 
         try
             if run_once
@@ -75,14 +88,17 @@ function make_turing_suite(
         end
 
         # Need a separate `VarInfo` for the linked version since otherwise we risk the
-        # `vi` from above being mutated.
-        vi_linked = deepcopy(vi)
-        DynamicPPL.link!(vi_linked, spl)
+        # `varinfo` from above being mutated.
+        varinfo_linked = if sampler === nothing
+            DynamicPPL.link!!(deepcopy(varinfo_current), model)
+        else
+            DynamicPPL.link!!(deepcopy(varinfo_current), sampler, model)
+        end
         f_linked = LogDensityProblemsAD.ADgradient(
             adbackend,
-            Turing.LogDensityFunction(vi_linked, model, spl, DynamicPPL.DefaultContext())
+            DynamicPPL.LogDensityFunction(varinfo_linked, model, context)
         )
-        θ_linked = vi_linked[spl]
+        θ_linked = varinfo_linked[indexer]
 
         try
             if run_once
@@ -99,9 +115,13 @@ function make_turing_suite(
     end
 
     # Also benchmark just standard model evaluation because why not.
-    suite["not_linked"]["evaluation"] = @benchmarkable $(DynamicPPL.evaluate!!)($model, $vi_orig, $(DynamicPPL.DefaultContext()))
-    DynamicPPL.link!(vi_orig, spl)
-    suite["linked"]["evaluation"] = @benchmarkable $(DynamicPPL.evaluate!!)($model, $vi_orig, $(DynamicPPL.DefaultContext()))
+    suite["not_linked"]["evaluation"] = @benchmarkable $(DynamicPPL.evaluate!!)($model, $varinfo, $context)
+    varinfo_linked = if sampler === nothing
+        DynamicPPL.link!!(deepcopy(varinfo), model)
+    else
+        DynamicPPL.link!!(deepcopy(varinfo), sampler, model)
+    end
+    suite["linked"]["evaluation"] = @benchmarkable $(DynamicPPL.evaluate!!)($model, $varinfo_linked, $context)
 
     return save_grads ? (suite, grads) : suite
 end
@@ -129,9 +149,7 @@ function stan_model_string end
 
 Create default benchmark suite for the Stan model corresponding to `model`.
 """
-function make_stan_suite(model::DynamicPPL.Model; kwargs...)
-    error("`make_stan_suite` is not implemented. Try to load BridgeStan.jl to trigger definition of this function.")
-end
+function make_stan_suite end
 
 # This symbol is only defined on Julia versions that support extensions
 @static if !isdefined(Base, :get_extension)
