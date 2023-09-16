@@ -41,10 +41,12 @@ const SYMBOL_TO_BACKEND = Dict(
 )
 
 to_backend(x) = error("Unknown backend: $x")
-to_backend(x::Symbol) = get(
-    SYMBOL_TO_BACKEND, Symbol(lowercase(string(x))), error("Unknown backend: $x")
-)
 to_backend(x::Turing.Essential.ADBackend) = x
+function to_backend(x::Union{AbstractString,Symbol})
+    k = Symbol(lowercase(string(x)))
+    haskey(SYMBOL_TO_BACKEND, k) || error("Unknown backend: $x")
+    return SYMBOL_TO_BACKEND[k]
+end
 
 """
     benchmark_model(model::Turing.Model; suite_kwargs..., kwargs...)
