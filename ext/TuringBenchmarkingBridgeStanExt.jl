@@ -20,12 +20,27 @@ function stan_model_to_file_maybe(x::AbstractString)
     return tmpfile
 end
 
+"""
+    make_stan_suite(model::Turing.Model; kwargs...)
+
+Create default benchmark suite for the Stan model corresponding to `model`.
+
+# Arguments
+- `model`: The model to benchmark.
+
+# Keyword arguments
+- `θ`: The parameters to evaluate the model at. If `nothing`, then the parameters are
+  randomly initialized.
+- `model_string`: The Stan model string. If `nothing`, the model is obtained
+  by calling `stan_model_string(model)`. This can either be a string representing
+  the model or a path to a file ending in `.stan`.
+- `kwargs...`: Additional keyword arguments to pass to `BridgeStan.StanModel`.
+"""
 function TuringBenchmarking.make_stan_suite(
     model::TuringBenchmarking.DynamicPPL.Model;
     θ = nothing,
     model_string = nothing,
-    stanc_args = String[],
-    make_args = String[]
+    kwargs...
 )
 
     if isnothing(model_string)
@@ -38,8 +53,7 @@ function TuringBenchmarking.make_stan_suite(
     stan_model = BridgeStan.StanModel(
         stan_file = stan_model_to_file_maybe(model_string),
         data = data,
-        stanc_args = stanc_args,
-        make_args = make_args,
+        kwargs...
     )
 
     # Initialize from chain if parameters have not been provided.
