@@ -6,7 +6,8 @@ using LogDensityProblems
 using LogDensityProblemsAD
 
 using Turing
-using Turing.Essential: ForwardDiffAD, TrackerAD, ReverseDiffAD, ZygoteAD, CHUNKSIZE
+using Turing.Essential: ForwardDiffAD, TrackerAD, ReverseDiffAD, ZygoteAD
+using DynamicPPL: DynamicPPL
 
 using ReverseDiff: ReverseDiff
 using Zygote: Zygote
@@ -80,6 +81,9 @@ Create default benchmark suite for `model`.
 - `save_grads=false`: if `true` and `run_once` is `true`, the gradients from the initial
   execution will be saved and returned as the second return-value. This is useful if you
   want to check correctness of the gradients for different backends.
+- `varinfo`: the `VarInfo` to use. Defaults to `DynamicPPL.VarInfo(model)`.
+- `sampler`: the `Sampler` to use. Defaults to `nothing` (i.e. no sampler).
+- `context`: the `Context` to use. Defaults to `DynamicPPL.DefaultContext()`.
 
 # Notes
 - A separate "parameter" instance (`DynamicPPL.VarInfo`) will be created for _each test_.
@@ -88,7 +92,12 @@ Create default benchmark suite for `model`.
 """
 function make_turing_suite(
     model::DynamicPPL.Model;
-    adbackends = DEFAULT_ADBACKENDS, run_once = true, save_grads = false
+    adbackends = DEFAULT_ADBACKENDS,
+    run_once::Bool = true,
+    save_grads::Bool = false,
+    varinfo::DynamicPPL.AbstractVarInfo = DynamicPPL.VarInfo(model),
+    sampler::Union{AbstractMCMC.AbstractSampler,Nothing} = nothing,
+    context::DynamicPPL.AbstractContext = DynamicPPL.DefaultContext()
 )
     grads = Dict(:standard => Dict(), :linked => Dict())
 
@@ -98,8 +107,10 @@ function make_turing_suite(
     suite["evaluation"] = suite_evaluation
     suite["gradient"] = suite_gradient
 
-    vi_orig = DynamicPPL.VarInfo(model)
-    spl = DynamicPPL.SampleFromPrior()
+    indexer = sampler === nothing ? Colon() : sampler
+    if sampler !== nothing
+        context = DynamicPPL.SamplingContext(sampler, context)
+    end
 
     for adbackend in adbackends
         suite_backend = BenchmarkGroup([backend_label(adbackend)])
@@ -111,9 +122,11 @@ function make_turing_suite(
         varinfo_current = DynamicPPL.unflatten(varinfo, context, varinfo[indexer])
         f = LogDensityProblemsAD.ADgradient(
             adbackend,
-            Turing.LogDensityFunction(vi, model, spl, DynamicPPL.DefaultContext())
+            DynamicPPL.LogDensityFunction(
+                varinfo_current, model, context
+            )
         )
-        θ = vi[spl]
+        θ = varinfo_current[indexer]
 
         try
             if run_once
@@ -129,14 +142,17 @@ function make_turing_suite(
         end
 
         # Need a separate `VarInfo` for the linked version since otherwise we risk the
-        # `vi` from above being mutated.
-        vi_linked = deepcopy(vi)
-        DynamicPPL.link!(vi_linked, spl)
+        # `varinfo` from above being mutated.
+        varinfo_linked = if sampler === nothing
+            DynamicPPL.link!!(deepcopy(varinfo_current), model)
+        else
+            DynamicPPL.link!!(deepcopy(varinfo_current), sampler, model)
+        end
         f_linked = LogDensityProblemsAD.ADgradient(
             adbackend,
-            Turing.LogDensityFunction(vi_linked, model, spl, DynamicPPL.DefaultContext())
+            DynamicPPL.LogDensityFunction(varinfo_linked, model, context)
         )
-        θ_linked = vi_linked[spl]
+        θ_linked = varinfo_linked[indexer]
 
         try
             if run_once
@@ -177,8 +193,6 @@ function make_turing_suite(
                 @warn "Gradient check failed for $(backend): gradients differ"
             end
         end
-
-        end
     end
     
     return save_grads ? (suite, grads) : suite
@@ -207,9 +221,7 @@ function stan_model_string end
 
 Create default benchmark suite for the Stan model corresponding to `model`.
 """
-function make_stan_suite(model::DynamicPPL.Model; kwargs...)
-    error("`make_stan_suite` is not implemented. Try to load BridgeStan.jl to trigger definition of this function.")
-end
+function make_stan_suite end
 
 # This symbol is only defined on Julia versions that support extensions
 @static if !isdefined(Base, :get_extension)
