@@ -42,7 +42,12 @@ Create default benchmark suite for `model`.
 """
 function make_turing_suite(
     model::DynamicPPL.Model;
-    adbackends = DEFAULT_ADBACKENDS, run_once = true, save_grads = false
+    adbackends = DEFAULT_ADBACKENDS,
+    run_once::Bool = true,
+    save_grads::Bool = false,
+    varinfo::DynamicPPL.AbstractVarInfo = DynamicPPL.VarInfo(model),
+    sampler::Union{AbstractMCMC.AbstractSampler,Nothing} = nothing,
+    context::DynamicPPL.AbstractContext = DynamicPPL.DefaultContext()
 )
     suite = BenchmarkGroup()
     suite["not_linked"] = BenchmarkGroup()
@@ -50,16 +55,20 @@ function make_turing_suite(
 
     grads = Dict(:not_linked => Dict(), :linked => Dict())
 
-    vi_orig = DynamicPPL.VarInfo(model)
-    spl = DynamicPPL.SampleFromPrior()
+    indexer = sampler === nothing ? Colon() : sampler
+    if sampler !== nothing
+        context = DynamicPPL.SamplingContext(sampler, context)
+    end
 
     for adbackend in adbackends
-        vi = DynamicPPL.VarInfo(vi_orig, spl, vi_orig[spl])
+        varinfo_current = DynamicPPL.unflatten(varinfo, context, varinfo[indexer])
         f = LogDensityProblemsAD.ADgradient(
             adbackend,
-            Turing.LogDensityFunction(vi, model, spl, DynamicPPL.DefaultContext())
+            DynamicPPL.LogDensityFunction(
+                varinfo_current, model, context
+            )
         )
-        θ = vi[spl]
+        θ = varinfo_current[indexer]
 
         try
             if run_once
@@ -75,14 +84,17 @@ function make_turing_suite(
         end
 
         # Need a separate `VarInfo` for the linked version since otherwise we risk the
-        # `vi` from above being mutated.
-        vi_linked = deepcopy(vi)
-        DynamicPPL.link!(vi_linked, spl)
+        # `varinfo` from above being mutated.
+        varinfo_linked = if sampler === nothing
+            DynamicPPL.link!!(deepcopy(varinfo_current), model)
+        else
+            DynamicPPL.link!!(deepcopy(varinfo_current), sampler, model)
+        end
         f_linked = LogDensityProblemsAD.ADgradient(
             adbackend,
-            Turing.LogDensityFunction(vi_linked, model, spl, DynamicPPL.DefaultContext())
+            Turing.LogDensityFunction(varinfo_linked, model, context)
         )
-        θ_linked = vi_linked[spl]
+        θ_linked = varinfo_linked[indexer]
 
         try
             if run_once
@@ -99,9 +111,13 @@ function make_turing_suite(
     end
 
     # Also benchmark just standard model evaluation because why not.
-    suite["not_linked"]["evaluation"] = @benchmarkable $(DynamicPPL.evaluate!!)($model, $vi_orig, $(DynamicPPL.DefaultContext()))
-    DynamicPPL.link!(vi_orig, spl)
-    suite["linked"]["evaluation"] = @benchmarkable $(DynamicPPL.evaluate!!)($model, $vi_orig, $(DynamicPPL.DefaultContext()))
+    suite["not_linked"]["evaluation"] = @benchmarkable $(DynamicPPL.evaluate!!)($model, $varinfo, $context)
+    varinfo_linked = if sampler === nothing
+        DynamicPPL.link!!(deepcopy(varinfo), model)
+    else
+        DynamicPPL.link!!(deepcopy(varinfo), sampler, model)
+    end
+    suite["linked"]["evaluation"] = @benchmarkable $(DynamicPPL.evaluate!!)($model, $varinfo_linked, $context)
 
     return save_grads ? (suite, grads) : suite
 end
