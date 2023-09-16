@@ -8,6 +8,10 @@ using LogDensityProblemsAD
 using Turing
 using Turing.Essential: ForwardDiffAD, TrackerAD, ReverseDiffAD, ZygoteAD, CHUNKSIZE
 
+if !isdefined(Base, :get_extension)
+    using Requires
+end
+
 # Don't include `TrackerAD` because it's never going to win.
 const DEFAULT_ADBACKENDS = [
     ForwardDiffAD{40}(),    # chunksize=40
