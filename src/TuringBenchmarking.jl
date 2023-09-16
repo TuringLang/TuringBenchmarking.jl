@@ -8,9 +8,14 @@ using LogDensityProblemsAD
 using Turing
 using Turing.Essential: ForwardDiffAD, TrackerAD, ReverseDiffAD, ZygoteAD, CHUNKSIZE
 
+using ReverseDiff: ReverseDiff
+using Zygote: Zygote
+
 if !isdefined(Base, :get_extension)
     using Requires
 end
+
+export benchmark_model, make_turing_suite, @tagged
 
 # Don't include `TrackerAD` because it's never going to win.
 const DEFAULT_ADBACKENDS = [
@@ -20,6 +25,47 @@ const DEFAULT_ADBACKENDS = [
     ReverseDiffAD{false}(), # rdcache=false
     ReverseDiffAD{true}()   # rdcache=false
 ]
+
+backend_label(::ForwardDiffAD) = "ForwardDiff"
+backend_label(::ReverseDiffAD) = "ReverseDiff"
+backend_label(::ZygoteAD) = "Zygote"
+backend_label(::TrackerAD) = "Tracker"
+
+"""
+    benchmark_model(model::Turing.Model; suite_kwargs..., kwargs...)
+
+Create and run a benchmark suite for `model`.
+
+The benchmarking suite will be created using [`make_turing_suite`](@ref).
+See [`make_turing_suite`](@ref) for the available keyword arguments and more information.
+
+# Keyword arguments
+- `suite_kwargs`: Keyword arguments passed to [`make_turing_suite`](@ref).
+- `kwargs`: Keyword arguments passed to `BenchmarkTools.run`.
+"""
+function benchmark_model(
+    model::DynamicPPL.Model;
+    adbackends = DEFAULT_ADBACKENDS,
+    run_once::Bool = true,
+    save_grads::Bool = false,
+    varinfo::DynamicPPL.AbstractVarInfo = DynamicPPL.VarInfo(model),
+    sampler::Union{AbstractMCMC.AbstractSampler,Nothing} = nothing,
+    context::DynamicPPL.AbstractContext = DynamicPPL.DefaultContext(),
+    verbose=true,
+    kwargs...
+)
+    suite = make_turing_suite(
+        model;
+        adbackends,
+        run_once,
+        save_grads,
+        varinfo,
+        sampler,
+        context,
+        kwargs...
+    )
+    return run(suite; verbose=verbose, kwargs...)
+end
 
 """
     make_turing_suite(model::Turing.Model; kwargs...)
@@ -44,17 +90,25 @@ function make_turing_suite(
     model::DynamicPPL.Model;
     adbackends = DEFAULT_ADBACKENDS, run_once = true, save_grads = false
 )
-    suite = BenchmarkGroup()
-    suite["not_linked"] = BenchmarkGroup()
-    suite["linked"] = BenchmarkGroup()
+    grads = Dict(:standard => Dict(), :linked => Dict())
 
-    grads = Dict(:not_linked => Dict(), :linked => Dict())
+    suite = BenchmarkGroup()
+    suite_evaluation = BenchmarkGroup()
+    suite_gradient = BenchmarkGroup()
+    suite["evaluation"] = suite_evaluation
+    suite["gradient"] = suite_gradient
 
     vi_orig = DynamicPPL.VarInfo(model)
     spl = DynamicPPL.SampleFromPrior()
 
     for adbackend in adbackends
-        vi = DynamicPPL.VarInfo(vi_orig, spl, vi_orig[spl])
+        suite_backend = BenchmarkGroup([backend_label(adbackend)])
+        suite_gradient["$(adbackend)"] = suite_backend
+
+        suite_backend["standard"] = BenchmarkGroup()
+        suite_backend["linked"] = BenchmarkGroup()
+
+        varinfo_current = DynamicPPL.unflatten(varinfo, context, varinfo[indexer])
         f = LogDensityProblemsAD.ADgradient(
             adbackend,
             Turing.LogDensityFunction(vi, model, spl, DynamicPPL.DefaultContext())
@@ -66,10 +120,10 @@ function make_turing_suite(
                 ℓ, ∇ℓ = LogDensityProblems.logdensity_and_gradient(f, θ)
 
                 if save_grads
-                    grads[:not_linked][adbackend] = (ℓ, ∇ℓ)
+                    grads[:standard][adbackend] = (ℓ, ∇ℓ)
                 end
             end
-            suite["not_linked"]["$(adbackend)"] = @benchmarkable $(LogDensityProblems.logdensity_and_gradient)($f, $θ)
+            suite_backend["standard"] = @benchmarkable $(LogDensityProblems.logdensity_and_gradient)($f, $θ)
         catch e
             @warn "Gradient computation (without linking) failed for $(adbackend): $(e)"
         end
@@ -92,17 +146,41 @@ function make_turing_suite(
                     grads[:linked][adbackend] = (ℓ, ∇ℓ)
                 end
             end
-            suite["linked"]["$(adbackend)"] = @benchmarkable $(LogDensityProblems.logdensity_and_gradient)($f_linked, $θ_linked)
+            suite_backend["linked"] = @benchmarkable $(LogDensityProblems.logdensity_and_gradient)($f_linked, $θ_linked)
         catch e
             @warn "Gradient computation (with linking) failed for $(adbackend): $(e)"
         end
     end
 
     # Also benchmark just standard model evaluation because why not.
-    suite["not_linked"]["evaluation"] = @benchmarkable $(DynamicPPL.evaluate!!)($model, $vi_orig, $(DynamicPPL.DefaultContext()))
-    DynamicPPL.link!(vi_orig, spl)
-    suite["linked"]["evaluation"] = @benchmarkable $(DynamicPPL.evaluate!!)($model, $vi_orig, $(DynamicPPL.DefaultContext()))
+    suite_evaluation["standard"] = @benchmarkable $(DynamicPPL.evaluate!!)(
+        $model, $varinfo, $context
+    )
+    varinfo_linked = if sampler === nothing
+        DynamicPPL.link!!(deepcopy(varinfo), model)
+    else
+        DynamicPPL.link!!(deepcopy(varinfo), sampler, model)
+    end
+    suite_evaluation["linked"] = @benchmarkable $(DynamicPPL.evaluate!!)(
+        $model, $varinfo_linked, $context
+    )
 
+    if save_grads
+        # Let's check that the gradients are roughly the same for all backends.
+        (val_first, grad_first) = first(values(grads[:standard]))
+        for (backend, (val, grad)) in grads[:standard]
+            if !(val ≊ val_first)
+                @warn "Gradient check failed for $(backend): log-density values differ"
+            end
+
+            if !(grad ≊ grad_first)
+                @warn "Gradient check failed for $(backend): gradients differ"
+            end
+        end
+
+        end
+    end
+    
     return save_grads ? (suite, grads) : suite
 end
 
