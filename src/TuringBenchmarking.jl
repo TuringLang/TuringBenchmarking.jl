@@ -20,10 +20,10 @@ export benchmark_model, make_turing_suite, @tagged
 
 # Don't include `TrackerAD` because it's never going to win.
 const DEFAULT_ADBACKENDS = [
-    ForwardDiffAD{}(Turing.Essential.CHUNKSIZE[]), # chunksize=40
-    ZygoteAD(),
+    ForwardDiffAD{Turing.Essential.CHUNKSIZE[]}(), # chunksize=40
     ReverseDiffAD{false}(), # rdcache=false
-    ReverseDiffAD{true}()   # rdcache=false
+    ReverseDiffAD{true}(),  # rdcache=false
+    ZygoteAD(),
 ]
 
 backend_label(::ForwardDiffAD) = "ForwardDiff"
@@ -67,7 +67,6 @@ function benchmark_model(
     varinfo::DynamicPPL.AbstractVarInfo = DynamicPPL.VarInfo(model),
     sampler::Union{AbstractMCMC.AbstractSampler,Nothing} = nothing,
     context::DynamicPPL.AbstractContext = DynamicPPL.DefaultContext(),
-    verbose=true,
     kwargs...
 )
     suite = make_turing_suite(
@@ -80,7 +79,7 @@ function benchmark_model(
         context,
         kwargs...
     )
-    return run(suite; verbose=verbose, kwargs...)
+    return run(suite; kwargs...)
 end
 
 """

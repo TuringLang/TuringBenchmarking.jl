@@ -12,12 +12,7 @@ BenchmarkTools.DEFAULT_PARAMETERS.evals = 1
 BenchmarkTools.DEFAULT_PARAMETERS.samples = 2
 
 # These should be ordered (ascendingly) by runtime.
-ADBACKENDS = [
-    TuringBenchmarking.ForwardDiffAD{40}(),
-    TuringBenchmarking.ReverseDiffAD{true}(),
-    TuringBenchmarking.ReverseDiffAD{false}(),
-    TuringBenchmarking.ZygoteAD(),
-]
+ADBACKENDS = TuringBenchmarking.DEFAULT_ADBACKENDS
 
 @testset "TuringBenchmarking.jl" begin
     @testset "Item-Response model" begin
@@ -68,7 +63,7 @@ ADBACKENDS = [
             )
             results = run(suite, verbose=true)
 
-            for (i, adbackend) in enumerate(ADBACKENDS)
+            @testset "$adbackend" for (i, adbackend) in enumerate(ADBACKENDS)
                 adbackend_string = "$(adbackend)"
                 results_backend = results[@tagged adbackend_string]
                 # Each AD backend should have two results.
@@ -90,7 +85,7 @@ ADBACKENDS = [
             )
             results = run(suite, verbose=true)
 
-            for (i, adbackend) in enumerate(ADBACKENDS)
+            @testset "$adbackend" for (i, adbackend) in enumerate(ADBACKENDS)
                 adbackend_string = "$(adbackend)"
                 results_backend = results[@tagged adbackend_string]
                 # Each AD backend should have two results.
@@ -127,7 +122,7 @@ ADBACKENDS = [
             )
             results = run(suite, verbose=true)
 
-            for (i, adbackend) in enumerate(ADBACKENDS)
+            @testset "$adbackend" for (i, adbackend) in enumerate(ADBACKENDS)
                 adbackend_string = "$(adbackend)"
                 results_backend = results[@tagged adbackend_string]
                 if adbackend isa TuringBenchmarking.ZygoteAD
