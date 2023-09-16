@@ -1,10 +1,11 @@
-using TuringBenchmarking
-using BenchmarkTools
-using Turing
-
-# Trigger Requires.jl.
-using Zygote: Zygote
-using ReverseDiff: ReverseDiff
+using TuringBenchmarking,
+    BridgeStan,
+    BenchmarkTools,
+    Turing,
+    Zygote,
+    ReverseDiff,
+    ForwardDiff,
+    JSON
 
 ### Setup ###
 function sim(I, P)
@@ -68,8 +69,9 @@ suite = TuringBenchmarking.make_turing_suite(
 # Tell `TuringBenchmarking` how to convert `model` into data consumable by Stan.
 function TuringBenchmarking.extract_stan_data(model::DynamicPPL.Model{typeof(irt)})
     args = Dict(zip(string.(keys(model.args)), values(model.args)))
-    args["N"] = args["I"] * args["P"]
-    return args
+    kwargs = Dict(zip(string.(keys(model.defaults)), values(model.defaults)))
+    kwargs["N"] = kwargs["I"] * kwargs["P"]
+    return JSON.json(merge(args, kwargs))
 end
 
 # Tell `TuringBenchmarking` about the corresponding Stan model.

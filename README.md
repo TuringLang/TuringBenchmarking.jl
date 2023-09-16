@@ -46,10 +46,12 @@ Example output:
 And if you want to compare the result to Stan:
 
 ``` julia
+using BridgeStan, JSON
+
 # Tell `TuringBenchmarking` how to convert `model` into Stan data & model.
 function TuringBenchmaring.extract_stan_data(model::Turing.Model{typeof(your_model)})
     # In the case where the Turing.jl and Stan models are identical in what they expect we can just do:
-    return Dict(zip(string.(keys(model.args)), values(model.args)))
+    return JSON.json(Dict(zip(string.(keys(model.args)), values(model.args))))
 end
 
 TuringBenchmarking.stan_model_string(model::Turing.Model{typeof(your_model)}) = """
