@@ -8,22 +8,6 @@ using LogDensityProblemsAD
 using Turing
 using Turing.Essential: ForwardDiffAD, TrackerAD, ReverseDiffAD, ZygoteAD, CHUNKSIZE
 
-using PyCall
-
-const pystan = PyNULL()
-
-function init_pystan()
-    copy!(pystan, pyimport_conda("pystan", "pystan", "conda-forge"))
-end
-
-function __init__()
-    try
-        init_pystan()
-    catch e
-        @warn "Failed to import PyStan; related functionality will not work. Try manually calling `TuringBenchmarking.init_pystan()` for more info."
-    end
-end
-
 # Don't include `TrackerAD` because it's never going to win.
 const DEFAULT_ADBACKENDS = [
     ForwardDiffAD{40}(),    # chunksize=40
@@ -112,7 +96,11 @@ end
 """
     extract_stan_data(model::DynamicPPL.Model)
 
-Return a `Dict` which can be consumed by the corresponding Stan model.
+Return the data in `model` in a format consumable by the corresponding Stan model.
+
+The Stan model requires the return data to be either
+1. A JSON string representing a dictionary with the data.
+2. A path to a data file ending in `.json`.
 """
 function extract_stan_data end
 
@@ -123,68 +111,14 @@ Return a string defining the Stan model corresponding to `model`.
 """
 function stan_model_string end
 
+function make_stan_suite end
 
-const STAN_DEFAULT_COMPILE_FLAGS = [
-    "-ftemplate-depth-256",
-    "-O3",
-    "-mtune=native",
-    "-march=native",
-    "-pipe",
-    "-fno-trapping-math",
-    "-funroll-loops",
-    "-funswitch-loops"
-]
-
-function make_stan_suite(
-    model::DynamicPPL.Model;
-    θ = nothing,
-    model_string = nothing,
-    initial_iters = 10,
-    num_steps = 1,
-    step_size = 1e-3,
-    extra_compile_args = STAN_DEFAULT_COMPILE_FLAGS,
-)
-    if isnothing(model_string)
-        model_string = stan_model_string(model)
+# This symbol is only defined on Julia versions that support extensions
+@static if !isdefined(Base, :get_extension)
+    using Requires
+    function __init__()
+        @require BridgeStan = "c88b6f0a-829e-4b0b-94b7-f06ab5908f5a" include("../ext/TuringBenchmarkingBridgeStanExt.jl")
     end
-
-    sm = TuringBenchmarking.pystan.StanModel(
-        model_code = model_string,
-        # NOTE: Extra compile args doesn't seem to make any difference performnace-wise.
-        extra_compile_args = extra_compile_args
-    )
-
-    # Convert the data/observations into something consumable by the Stan model.
-    data = extract_stan_data(model)
-
-    # Run a tiny bit of sampling because we need the resulting object to compute gradients.
-    f = sm.sampling(
-        data = data,
-        iter = initial_iters,
-        chains = 1,
-        warmup = 0,
-        algorithm = "HMC",
-        control = Dict(
-            "adapt_engaged" => false,
-            # HMC
-            "int_time" => num_steps * step_size,
-            "metric" => "diag_e",
-            "stepsize" => step_size,
-            "stepsize_jitter" => 0,
-        )
-    )
-
-    # Initialize from chain if parameters have not been provided.
-    if isnothing(θ)
-        θ = f.unconstrain_pars(f.get_last_position()[1])
-    end
-
-    # Create suite.
-    stan_suite = BenchmarkGroup()
-    stan_suite["evaluation"] = @benchmarkable $(f.log_prob)($θ)
-    stan_suite["gradient"] = @benchmarkable $(f.grad_log_prob)($θ)
-
-    return stan_suite
 end
 
 end # module TuringBenchmarking
