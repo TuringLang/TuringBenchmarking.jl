@@ -41,7 +41,9 @@ const SYMBOL_TO_BACKEND = Dict(
 )
 
 to_backend(x) = error("Unknown backend: $x")
-to_backend(x::Symbol) = get(SYMBOL_TO_BACKEND, lowercase(x), error("Unknown backend: $x"))
+to_backend(x::Symbol) = get(
+    SYMBOL_TO_BACKEND, Symbol(lowercase(string(x))), error("Unknown backend: $x")
+)
 to_backend(x::Turing.Essential.ADBackend) = x
 
 """
