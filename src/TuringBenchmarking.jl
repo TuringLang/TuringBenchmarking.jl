@@ -61,14 +61,18 @@ function make_turing_suite(
         )
         θ = vi[spl]
 
-        if run_once
-            ℓ, ∇ℓ = LogDensityProblems.logdensity_and_gradient(f, θ)
+        try
+            if run_once
+                ℓ, ∇ℓ = LogDensityProblems.logdensity_and_gradient(f, θ)
 
-            if save_grads
-                grads[:not_linked][adbackend] = (ℓ, ∇ℓ)
+                if save_grads
+                    grads[:not_linked][adbackend] = (ℓ, ∇ℓ)
+                end
             end
+            suite["not_linked"]["$(adbackend)"] = @benchmarkable $(LogDensityProblems.logdensity_and_gradient)($f, $θ)
+        catch e
+            @warn "Gradient computation (without linking) failed for $(adbackend): $(e)"
         end
-        suite["not_linked"]["$(adbackend)"] = @benchmarkable $(LogDensityProblems.logdensity_and_gradient)($f, $θ)
 
         # Need a separate `VarInfo` for the linked version since otherwise we risk the
         # `vi` from above being mutated.
@@ -79,14 +83,19 @@ function make_turing_suite(
             Turing.LogDensityFunction(vi_linked, model, spl, DynamicPPL.DefaultContext())
         )
         θ_linked = vi_linked[spl]
-        if run_once
-            ℓ, ∇ℓ = LogDensityProblems.logdensity_and_gradient(f_linked, θ_linked)
 
-            if save_grads
-                grads[:linked][adbackend] = (ℓ, ∇ℓ)
+        try
+            if run_once
+                ℓ, ∇ℓ = LogDensityProblems.logdensity_and_gradient(f_linked, θ_linked)
+
+                if save_grads
+                    grads[:linked][adbackend] = (ℓ, ∇ℓ)
+                end
             end
+            suite["linked"]["$(adbackend)"] = @benchmarkable $(LogDensityProblems.logdensity_and_gradient)($f_linked, $θ_linked)
+        catch e
+            @warn "Gradient computation (with linking) failed for $(adbackend): $(e)"
         end
-        suite["linked"]["$(adbackend)"] = @benchmarkable $(LogDensityProblems.logdensity_and_gradient)($f_linked, $θ_linked)
     end
 
     # Also benchmark just standard model evaluation because why not.
