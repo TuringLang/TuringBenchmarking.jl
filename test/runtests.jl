@@ -35,9 +35,7 @@ ADBACKENDS = [
 
             return yvec, ivec, pvec, theta, beta
         end
-
-        P = 10
-        y, i, p, _, _ = sim(20, P)
+        y, i, p, _, _ = sim(20, 10)
 
         ### Turing ###
         # performant model
@@ -64,7 +62,6 @@ ADBACKENDS = [
             )
             results = run(suite, verbose=true, evals=1, samples=2)
 
-            # TODO: Is there a better way to test these?
             for (i, adbackend) in enumerate(ADBACKENDS)
                 adbackend_string = "$(adbackend)"
                 results_backend = results[@tagged adbackend_string]
