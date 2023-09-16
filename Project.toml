@@ -22,7 +22,7 @@ LogDensityProblems = "2"
 LogDensityProblemsAD = "1"
 Requires = "1"
 ReverseDiff = "1.14"
-Turing = "0.23, 0.24, 0.29"
+Turing = "0.23, 0.24, 0.25, 0.26, 0.27, 0.28, 0.29"
 Zygote = "0.6"
 julia = "1.6"
 

@@ -129,9 +129,7 @@ function stan_model_string end
 
 Create default benchmark suite for the Stan model corresponding to `model`.
 """
-function make_stan_suite(model::DynamicPPL.Model; kwargs...)
-    error("`make_stan_suite` is not implemented. Try to load BridgeStan.jl to trigger definition of this function.")
-end
+function make_stan_suite end
 
 # This symbol is only defined on Julia versions that support extensions
 @static if !isdefined(Base, :get_extension)
