@@ -6,7 +6,8 @@ using LogDensityProblems
 using LogDensityProblemsAD
 
 using Turing
-using Turing.Essential: ForwardDiffAD, TrackerAD, ReverseDiffAD, ZygoteAD, CHUNKSIZE
+using Turing.Essential: ForwardDiffAD, TrackerAD, ReverseDiffAD, ZygoteAD
+using DynamicPPL: DynamicPPL
 
 if !isdefined(Base, :get_extension)
     using Requires
@@ -34,6 +35,9 @@ Create default benchmark suite for `model`.
 - `save_grads=false`: if `true` and `run_once` is `true`, the gradients from the initial
   execution will be saved and returned as the second return-value. This is useful if you
   want to check correctness of the gradients for different backends.
+- `varinfo`: the `VarInfo` to use. Defaults to `DynamicPPL.VarInfo(model)`.
+- `sampler`: the `Sampler` to use. Defaults to `nothing` (i.e. no sampler).
+- `context`: the `Context` to use. Defaults to `DynamicPPL.DefaultContext()`.
 
 # Notes
 - A separate "parameter" instance (`DynamicPPL.VarInfo`) will be created for _each test_.
@@ -92,7 +96,7 @@ function make_turing_suite(
         end
         f_linked = LogDensityProblemsAD.ADgradient(
             adbackend,
-            Turing.LogDensityFunction(varinfo_linked, model, context)
+            DynamicPPL.LogDensityFunction(varinfo_linked, model, context)
         )
         θ_linked = varinfo_linked[indexer]
 
