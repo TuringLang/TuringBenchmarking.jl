@@ -66,7 +66,7 @@ ADBACKENDS = [
                 varinfo=varinfo,
                 check_grads=true,
             )
-            results = run(suite, verbose=true, evals=1, samples=2)
+            results = run(suite, verbose=true)
 
             for (i, adbackend) in enumerate(ADBACKENDS)
                 adbackend_string = "$(adbackend)"
@@ -88,7 +88,7 @@ ADBACKENDS = [
                 adbackends=[:forwarddiff, :reversediff, :reversediff_compiled, :zygote],
                 varinfo=varinfo,
             )
-            results = run(suite, verbose=true, evals=1, samples=2)
+            results = run(suite, verbose=true)
 
             for (i, adbackend) in enumerate(ADBACKENDS)
                 adbackend_string = "$(adbackend)"
@@ -125,7 +125,7 @@ ADBACKENDS = [
                 adbackends=ADBACKENDS,
                 varinfo=varinfo
             )
-            results = run(suite, verbose=true, evals=1, samples=2)
+            results = run(suite, verbose=true)
 
             for (i, adbackend) in enumerate(ADBACKENDS)
                 adbackend_string = "$(adbackend)"
