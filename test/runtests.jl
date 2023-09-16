@@ -6,13 +6,13 @@ using Test
 using Zygote: Zygote
 using ReverseDiff: ReverseDiff
 
+# Just make things run a bit faster.
+BenchmarkTools.DEFAULT_PARAMETERS.seconds = 1
+BenchmarkTools.DEFAULT_PARAMETERS.evals = 1
+BenchmarkTools.DEFAULT_PARAMETERS.samples = 2
+
 # These should be ordered (ascendingly) by runtime.
-ADBACKENDS = [
-    TuringBenchmarking.ForwardDiffAD{40}(),
-    TuringBenchmarking.ReverseDiffAD{true}(),
-    TuringBenchmarking.ReverseDiffAD{false}(),
-    TuringBenchmarking.ZygoteAD(),
-]
+ADBACKENDS = TuringBenchmarking.DEFAULT_ADBACKENDS
 
 @testset "TuringBenchmarking.jl" begin
     @testset "Item-Response model" begin
@@ -35,9 +35,7 @@ ADBACKENDS = [
 
             return yvec, ivec, pvec, theta, beta
         end
-
-        P = 10
-        y, i, p, _, _ = sim(20, P)
+        y, i, p, _, _ = sim(5, 3)
 
         ### Turing ###
         # performant model
@@ -55,22 +53,52 @@ ADBACKENDS = [
         # Make the benchmark suite.
         @testset "$(nameof(typeof(varinfo)))" for varinfo in [
             DynamicPPL.VarInfo(model),
-            DynamicPPL.SimpleVarInfo{Float64}(model),
+            DynamicPPL.SimpleVarInfo(model),
         ]
             suite = TuringBenchmarking.make_turing_suite(
                 model;
                 adbackends=ADBACKENDS,
-                varinfo=varinfo
+                varinfo=varinfo,
+                check_grads=true,
             )
-            results = run(suite, verbose=true, evals=1, samples=2)
+            results = run(suite, verbose=true)
 
-            # TODO: Is there a better way to test these?
-            for (i, adbackend) in enumerate(ADBACKENDS)
-                @test haskey(suite["not_linked"], "$(adbackend)")
-                @test haskey(suite["linked"], "$(adbackend)")
+            @testset "$adbackend" for (i, adbackend) in enumerate(ADBACKENDS)
+                adbackend_string = "$(adbackend)"
+                results_backend = results[@tagged adbackend_string]
+                # Each AD backend should have two results.
+                @test length(leaves(results_backend)) == 2
+                # It should be under the "gradient" section.
+                @test haskey(results_backend, "gradient")
+                # It should have one tagged "linked" and one "standard"
+                @test length(leaves(results_backend[@tagged "linked"])) == 1
+                @test length(leaves(results_backend[@tagged "standard"])) == 1
+            end
+        end
+
+        @testset "Specify AD backends using symbols" begin
+            varinfo = DynamicPPL.VarInfo(model)
+            suite = TuringBenchmarking.make_turing_suite(
+                model;
+                adbackends=[:forwarddiff, :reversediff, :reversediff_compiled, :zygote],
+                varinfo=varinfo,
+            )
+            results = run(suite, verbose=true)
+
+            @testset "$adbackend" for (i, adbackend) in enumerate(ADBACKENDS)
+                adbackend_string = "$(adbackend)"
+                results_backend = results[@tagged adbackend_string]
+                # Each AD backend should have two results.
+                @test length(leaves(results_backend)) == 2
+                # It should be under the "gradient" section.
+                @test haskey(results_backend, "gradient")
+                # It should have one tagged "linked" and one "standard"
+                @test length(leaves(results_backend[@tagged "linked"])) == 1
+                @test length(leaves(results_backend[@tagged "standard"])) == 1
             end
         end
     end
+
 
     @testset "Model with mutation" begin
         @model function demo_with_mutation(::Type{TV}=Vector{Float64}) where {TV}
@@ -79,7 +107,6 @@ ADBACKENDS = [
             x[2] ~ Normal()
             return x
         end
-
         model = demo_with_mutation()
 
         # Make the benchmark suite.
@@ -93,16 +120,22 @@ ADBACKENDS = [
                 adbackends=ADBACKENDS,
                 varinfo=varinfo
             )
-            results = run(suite, verbose=true, evals=1, samples=2)
+            results = run(suite, verbose=true)
 
-            for (i, adbackend) in enumerate(ADBACKENDS)
-                # Zygote.jl should fail.
+            @testset "$adbackend" for (i, adbackend) in enumerate(ADBACKENDS)
+                adbackend_string = "$(adbackend)"
+                results_backend = results[@tagged adbackend_string]
                 if adbackend isa TuringBenchmarking.ZygoteAD
-                    @test !haskey(suite["not_linked"], "$(adbackend)")
-                    @test !haskey(suite["linked"], "$(adbackend)")
+                    # Zygote.jl should fail, i.e. return an empty suite.
+                    @test length(leaves(results_backend)) == 0
                 else
-                    @test haskey(suite["not_linked"], "$(adbackend)")
-                    @test haskey(suite["linked"], "$(adbackend)")
+                    # Each AD backend should have two results.
+                    @test length(leaves(results_backend)) == 2
+                    # It should be under the "gradient" section.
+                    @test haskey(results_backend, "gradient")
+                    # It should have one tagged "linked" and one "standard"
+                    @test length(leaves(results_backend[@tagged "linked"])) == 1
+                    @test length(leaves(results_backend[@tagged "standard"])) == 1
                 end
             end
         end

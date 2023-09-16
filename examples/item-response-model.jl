@@ -42,10 +42,14 @@ y, i, p, _, _ = sim(20, P);
 end
 
 # performant model
+function bernoulli_logit_logpdf(y, theta, beta)
+    return logpdf(BernoulliLogit(theta - beta), y)
+end
+
 @model function irt(y, i, p; I = maximum(i), P = maximum(p))
     theta ~ filldist(Normal(), P)
     beta ~ filldist(Normal(), I)
-    Turing.@addlogprob! sum(logpdf.(BernoulliLogit.(theta[p] - beta[i]), y))
+    Turing.@addlogprob! sum(bernoulli_logit_logpdf.(y, theta[p], beta[i]))
 
     return (; theta, beta)
 end
@@ -56,7 +60,11 @@ model = irt(y, i, p);
 # Make the benchmark suite.
 suite = TuringBenchmarking.make_turing_suite(
     model,
-    adbackends = [TuringBenchmarking.ForwardDiffAD{40}(), TuringBenchmarking.ReverseDiffAD{true}()]
+    adbackends = [
+        TuringBenchmarking.ForwardDiffAD{40}(),
+        TuringBenchmarking.ReverseDiffAD{true}(),
+        TuringBenchmarking.ReverseDiffAD{false}()
+    ]
 );
 
 # Run suite!
