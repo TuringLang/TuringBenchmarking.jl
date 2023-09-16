@@ -35,7 +35,7 @@ ADBACKENDS = [
 
             return yvec, ivec, pvec, theta, beta
         end
-        y, i, p, _, _ = sim(20, 10)
+        y, i, p, _, _ = sim(5, 3)
 
         ### Turing ###
         # performant model
@@ -60,6 +60,28 @@ ADBACKENDS = [
                 adbackends=ADBACKENDS,
                 varinfo=varinfo,
                 check_grads=true,
+            )
+            results = run(suite, verbose=true, evals=1, samples=2)
+
+            for (i, adbackend) in enumerate(ADBACKENDS)
+                adbackend_string = "$(adbackend)"
+                results_backend = results[@tagged adbackend_string]
+                # Each AD backend should have two results.
+                @test length(leaves(results_backend)) == 2
+                # It should be under the "gradient" section.
+                @test haskey(results_backend, "gradient")
+                # It should have one tagged "linked" and one "standard"
+                @test length(leaves(results_backend[@tagged "linked"])) == 1
+                @test length(leaves(results_backend[@tagged "standard"])) == 1
+            end
+        end
+
+        @testset "Specify AD backends using symbols" begin
+            varinfo = DynamicPPL.VarInfo(model)
+            suite = TuringBenchmarking.make_turing_suite(
+                model;
+                adbackends=[:forwarddiff, :reversediff, :reversediff_compiled, :zygote],
+                varinfo=varinfo,
             )
             results = run(suite, verbose=true, evals=1, samples=2)
 
