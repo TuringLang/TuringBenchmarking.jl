@@ -1,8 +1,8 @@
 # TuringBenchmarking.jl
 
-[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://torfjelde.github.io/TuringBenchmarking.jl/stable/)
-[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://torfjelde.github.io/TuringBenchmarking.jl/dev/)
-[![Build Status](https://github.com/torfjelde/TuringBenchmarking.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/torfjelde/TuringBenchmarking.jl/actions/workflows/CI.yml?query=branch%3Amain)
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://turinglang.github.io/TuringBenchmarking.jl/stable/)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://turinglang.github.io/TuringBenchmarking.jl/dev/)
+[![Build Status](https://github.com/turinglang/TuringBenchmarking.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/turinglang/TuringBenchmarking.jl/actions/workflows/CI.yml?query=branch%3Amain)
 
 A quick and dirty way to compare different automatic-differentiation backends in Turing.jl.
 
