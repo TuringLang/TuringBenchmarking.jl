@@ -77,7 +77,6 @@ function benchmark_model(
         varinfo,
         sampler,
         context,
-        kwargs...
     )
     return run(suite; kwargs...)
 end
@@ -111,7 +110,7 @@ function make_turing_suite(
     check_grads::Bool = false,
     varinfo::DynamicPPL.AbstractVarInfo = DynamicPPL.VarInfo(model),
     sampler::Union{AbstractMCMC.AbstractSampler,Nothing} = nothing,
-    context::DynamicPPL.AbstractContext = DynamicPPL.DefaultContext()
+    context::DynamicPPL.AbstractContext = DynamicPPL.DefaultContext(),
 )
     grads = Dict(:standard => Dict(), :linked => Dict())
 
