@@ -19,7 +19,7 @@ using TuringBenchmarking
 end
 
 # Create and run the benchmarking suite for Turing.jl.
-turing_suite = make_turing_suite(model; kwargs...)
+turing_suite = make_turing_suite(your_model; kwargs...)
 run(turing_suite)
 ```
 
