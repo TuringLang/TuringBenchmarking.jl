@@ -16,7 +16,7 @@ if !isdefined(Base, :get_extension)
     using Requires
 end
 
-export benchmark_model, make_turing_suite, @tagged
+export benchmark_model, make_turing_suite, BenchmarkTools, @tagged
 
 # Don't include `TrackerAD` because it's never going to win.
 const DEFAULT_ADBACKENDS = [
