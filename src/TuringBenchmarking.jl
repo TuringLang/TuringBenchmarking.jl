@@ -67,20 +67,26 @@ function benchmark_model(
     model::DynamicPPL.Model;
     adbackends = DEFAULT_ADBACKENDS,
     run_once::Bool = true,
-    check_grads::Bool = false,
+    check::Bool = false,
+    check_grads::Bool = check,
     varinfo::DynamicPPL.AbstractVarInfo = DynamicPPL.VarInfo(model),
     sampler::Union{AbstractMCMC.AbstractSampler,Nothing} = nothing,
     context::DynamicPPL.AbstractContext = DynamicPPL.DefaultContext(),
+    atol::Real = 1e-6,
+    rtol::Real = 0,
     kwargs...
 )
     suite = make_turing_suite(
         model;
         adbackends,
         run_once,
+        check,
         check_grads,
         varinfo,
         sampler,
         context,
+        atol,
+        rtol,
     )
     return run(suite; kwargs...)
 end
@@ -96,11 +102,14 @@ Create default benchmark suite for `model`.
 - `run_once=true`: if `true`, the body of each benchmark will be run once to avoid
   compilation to be included in the timings (this may occur if compilation runs
   longer than the allowed time limit).
-- `check_grads=false`: if `true` and `run_once` is `true`, the gradients from the initial
-  execution will be compared against each other to ensure that they are consistent.
+- `check=false`: if `true`, the log-density evaluations and the gradients
+   will be compared against each other to ensure that they are consistent.
+   Note that this will force `run_once=true`.
 - `varinfo`: the `VarInfo` to use. Defaults to `DynamicPPL.VarInfo(model)`.
 - `sampler`: the `Sampler` to use. Defaults to `nothing` (i.e. no sampler).
 - `context`: the `Context` to use. Defaults to `DynamicPPL.DefaultContext()`.
+- `atol`: the absolute tolerance to use for comparisons.
+- `rtol`: the relative tolerance to use for comparisons.
 
 # Notes
 - A separate "parameter" instance (`DynamicPPL.VarInfo`) will be created for _each test_.
@@ -119,12 +128,12 @@ function make_turing_suite(
     atol::Real = 1e-6,
     rtol::Real = 0,
 )
-    if check !== check_grads
+    if check != check_grads
         Base.depwarn(
             "The `check_grads` keyword argument is deprecated. Use `check` instead.",
             :make_turing_suite
         )
-        check_grads = check
+        check = check_grads
     end
 
     grads_and_vals = Dict(:standard => Dict(), :linked => Dict())
