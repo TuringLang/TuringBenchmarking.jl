@@ -111,12 +111,19 @@ function make_turing_suite(
     model::DynamicPPL.Model;
     adbackends = DEFAULT_ADBACKENDS,
     run_once::Bool = true,
-    check_grads::Bool = false,
+    check::Bool = false,
+    check_grads::Bool = check,
     varinfo::DynamicPPL.AbstractVarInfo = DynamicPPL.VarInfo(model),
     sampler::Union{AbstractMCMC.AbstractSampler,Nothing} = nothing,
     context::DynamicPPL.AbstractContext = DynamicPPL.DefaultContext(),
+    atol::Real = 1e-6,
+    rtol::Real = 0,
 )
-    grads = Dict(:standard => Dict(), :linked => Dict())
+    if check !== check_grads
+        @warn "The `check` keyword argument is deprecated. Use `check_grads` instead."
+        check_grads = check
+    end
+
     grads_and_vals = Dict(:standard => Dict(), :linked => Dict())
     adbackends = map(to_backend, adbackends)
 
