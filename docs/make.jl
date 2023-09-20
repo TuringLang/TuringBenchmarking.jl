@@ -21,5 +21,6 @@ makedocs(;
 
 deploydocs(;
     repo="github.com/TuringLang/TuringBenchmarking.jl",
+    devbranch="main",
     pushpreview=true,
 )
