@@ -6,11 +6,11 @@ DocMeta.setdocmeta!(TuringBenchmarking, :DocTestSetup, :(using TuringBenchmarkin
 makedocs(;
     modules=[TuringBenchmarking],
     authors="Tor Erlend Fjelde <torfjelde.github@gmail.com> and contributors",
-    repo="https://github.com/turinglang/TuringBenchmarking.jl/blob/{commit}{path}#{line}",
+    repo="https://github.com/TuringLang/TuringBenchmarking.jl/blob/{commit}{path}#{line}",
     sitename="TuringBenchmarking.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://turinglang.github.io/TuringBenchmarking.jl",
+        canonical="https://turinglang.org/TuringBenchmarking.jl",
         edit_link="main",
         assets=String[],
     ),
@@ -20,6 +20,7 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/turinglang/TuringBenchmarking.jl",
+    repo="github.com/TuringLang/TuringBenchmarking.jl",
     devbranch="main",
+    push_preview=true,
 )
