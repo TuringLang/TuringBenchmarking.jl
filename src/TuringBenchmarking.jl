@@ -239,15 +239,16 @@ function make_turing_suite(
     if check_grads
         success = true
         for type in [:standard, :linked]
+            backends = collect(keys(grads_and_vals[type]))
             vals = map(first, values(grads_and_vals[type]))
-            vals_dists = compute_distances(adbackends, vals)
+            vals_dists = compute_distances(backends, vals)
             if !all(isapprox.(values(vals_dists), 0, atol=atol, rtol=rtol))
                 @warn "There is disagreement in the log-density values!"
                 show_distances(vals_dists; header=([titlecase(string(type)), "Log-density"], ["backend", "distance"]), atol=atol, rtol=rtol)
                 success = false
             end
             grads = map(last, values(grads_and_vals[type]))
-            grads_dists = compute_distances(adbackends, grads)
+            grads_dists = compute_distances(backends, grads)
             if !all(isapprox.(values(grads_dists), 0, atol=atol, rtol=rtol))
                 @warn "There is disagreement in the gradients!"
                 show_distances(grads_dists, header=([titlecase(string(type)), "Gradient"], ["backend", "distance"]), atol=atol, rtol=rtol)
