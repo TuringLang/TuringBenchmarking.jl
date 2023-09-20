@@ -120,7 +120,10 @@ function make_turing_suite(
     rtol::Real = 0,
 )
     if check !== check_grads
-        @warn "The `check` keyword argument is deprecated. Use `check_grads` instead."
+        Base.depwarn(
+            "The `check` keyword argument is deprecated. Use `check_grads` instead.",
+            :make_turing_suite
+        )
         check_grads = check
     end
 
