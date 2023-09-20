@@ -115,10 +115,19 @@ ADBACKENDS = TuringBenchmarking.DEFAULT_ADBACKENDS
             DynamicPPL.SimpleVarInfo(x=randn(2)),
             DynamicPPL.SimpleVarInfo(DynamicPPL.OrderedDict(@varname(x) => randn(2))),
         ]
+            # Zygote will fail.
+            @test_throws Union{MethodError,ErrorException} TuringBenchmarking.make_turing_suite(
+                model;
+                adbackends=ADBACKENDS,
+                varinfo=varinfo,
+                error_on_failed_backend=true,
+            )
+            # Skip the failing ones.
             suite = TuringBenchmarking.make_turing_suite(
                 model;
                 adbackends=ADBACKENDS,
-                varinfo=varinfo
+                varinfo=varinfo,
+                error_on_failed_backend=false,
             )
             results = run(suite, verbose=true)
 

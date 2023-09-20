@@ -69,6 +69,8 @@ function benchmark_model(
     run_once::Bool = true,
     check::Bool = false,
     check_grads::Bool = check,
+    error_on_failed_check::Bool = false,
+    error_on_failed_backend::Bool = false,
     varinfo::DynamicPPL.AbstractVarInfo = DynamicPPL.VarInfo(model),
     sampler::Union{AbstractMCMC.AbstractSampler,Nothing} = nothing,
     context::DynamicPPL.AbstractContext = DynamicPPL.DefaultContext(),
@@ -98,13 +100,18 @@ Create default benchmark suite for `model`.
 
 # Keyword arguments
 - `adbackends`: a collection of adbackends to use, specified either as a
-  `Turing.Essential.ADBackend` or using a `Symbol`. Defaults to `$(DEFAULT_ADBACKENDS)`.
+ `Turing.Essential.ADBackend` or using a `Symbol`. Defaults to `$(DEFAULT_ADBACKENDS)`.
 - `run_once=true`: if `true`, the body of each benchmark will be run once to avoid
   compilation to be included in the timings (this may occur if compilation runs
   longer than the allowed time limit).
 - `check=false`: if `true`, the log-density evaluations and the gradients
-   will be compared against each other to ensure that they are consistent.
-   Note that this will force `run_once=true`.
+  will be compared against each other to ensure that they are consistent.
+  Note that this will force `run_once=true`.
+- `error_on_failed_check=false`: if `true`, an error will be thrown if the
+  check fails rather than just printing a warning, as is done by default.
+- `error_on_failed_backend=false`: if `true`, an error will be thrown if the
+  evaluation of the log-density or the gradient fails for any of the backends
+  rather than just printing a warning, as is done by default.
 - `varinfo`: the `VarInfo` to use. Defaults to `DynamicPPL.VarInfo(model)`.
 - `sampler`: the `Sampler` to use. Defaults to `nothing` (i.e. no sampler).
 - `context`: the `Context` to use. Defaults to `DynamicPPL.DefaultContext()`.
@@ -122,6 +129,8 @@ function make_turing_suite(
     run_once::Bool = true,
     check::Bool = false,
     check_grads::Bool = check,
+    error_on_failed_check::Bool = false,
+    error_on_failed_backend::Bool = false,
     varinfo::DynamicPPL.AbstractVarInfo = DynamicPPL.VarInfo(model),
     sampler::Union{AbstractMCMC.AbstractSampler,Nothing} = nothing,
     context::DynamicPPL.AbstractContext = DynamicPPL.DefaultContext(),
@@ -176,7 +185,11 @@ function make_turing_suite(
             end
             suite_backend["standard"] = @benchmarkable $(LogDensityProblems.logdensity_and_gradient)($f, $θ)
         catch e
-            @warn "Gradient computation (without linking) failed for $(adbackend): $(e)"
+            if error_on_failed_backend
+                rethrow(e)
+            else
+                @warn "Gradient computation (without linking) failed for $(adbackend): $(e)"
+            end
         end
 
         # Need a separate `VarInfo` for the linked version since otherwise we risk the
@@ -202,7 +215,11 @@ function make_turing_suite(
             end
             suite_backend["linked"] = @benchmarkable $(LogDensityProblems.logdensity_and_gradient)($f_linked, $θ_linked)
         catch e
-            @warn "Gradient computation (with linking) failed for $(adbackend): $(e)"
+            if error_on_failed_backend
+                rethrow(e)
+            else
+                @warn "Gradient computation (with linking) failed for $(adbackend): $(e)"
+            end
         end
     end
 
@@ -220,19 +237,26 @@ function make_turing_suite(
     )
 
     if check_grads
+        success = true
         for type in [:standard, :linked]
             vals = map(first, values(grads_and_vals[type]))
             vals_dists = compute_distances(adbackends, vals)
             if !all(isapprox.(values(vals_dists), 0, atol=atol, rtol=rtol))
                 @warn "There is disagreement in the log-density values!"
                 show_distances(vals_dists; header=([titlecase(string(type)), "Log-density"], ["backend", "distance"]), atol=atol, rtol=rtol)
+                success = false
             end
             grads = map(last, values(grads_and_vals[type]))
             grads_dists = compute_distances(adbackends, grads)
             if !all(isapprox.(values(grads_dists), 0, atol=atol, rtol=rtol))
                 @warn "There is disagreement in the gradients!"
                 show_distances(grads_dists, header=([titlecase(string(type)), "Gradient"], ["backend", "distance"]), atol=atol, rtol=rtol)
+                success = false
             end
+        end
+
+        if !success && error_on_failed_check
+            error("Consistency checks failed!")
         end
     end
 
