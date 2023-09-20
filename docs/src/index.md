@@ -22,7 +22,7 @@ end
 model = demo([1.5, 2.0]);
 
 benchmark_model(
-    model; 
+    model;
     # Check correctness of computations
     check=true,
     # Automatic differentiation backends to check and benchmark

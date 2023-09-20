@@ -169,15 +169,14 @@ function make_turing_suite(
         varinfo_current = DynamicPPL.unflatten(varinfo, context, varinfo[indexer])
         f = LogDensityProblemsAD.ADgradient(
             adbackend,
-            DynamicPPL.LogDensityFunction(
-                varinfo_current, model, context
-            )
+            DynamicPPL.LogDensityFunction(varinfo_current, model, context)
         )
         θ = varinfo_current[indexer]
 
         try
             if run_once || check_grads
                 ℓ, ∇ℓ = LogDensityProblems.logdensity_and_gradient(f, θ)
+                @debug "$(backend_label(adbackend))" θ ℓ ∇ℓ
 
                 if check_grads
                     grads_and_vals[:standard][adbackend] = (ℓ, ∇ℓ)
@@ -207,10 +206,11 @@ function make_turing_suite(
 
         try
             if run_once || check_grads
-                ℓ, ∇ℓ = LogDensityProblems.logdensity_and_gradient(f_linked, θ_linked)
+                ℓ_linked, ∇ℓ_linked = LogDensityProblems.logdensity_and_gradient(f_linked, θ_linked)
+                @debug "$(backend_label(adbackend)) [linked]" θ_linked ℓ_linked ∇ℓ_linked
 
                 if check_grads
-                    grads_and_vals[:linked][adbackend] = (ℓ, ∇ℓ)
+                    grads_and_vals[:linked][adbackend] = (ℓ_linked, ∇ℓ_linked)
                 end
             end
             suite_backend["linked"] = @benchmarkable $(LogDensityProblems.logdensity_and_gradient)($f_linked, $θ_linked)
