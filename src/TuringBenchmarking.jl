@@ -121,7 +121,7 @@ function make_turing_suite(
 )
     if check !== check_grads
         Base.depwarn(
-            "The `check` keyword argument is deprecated. Use `check_grads` instead.",
+            "The `check_grads` keyword argument is deprecated. Use `check` instead.",
             :make_turing_suite
         )
         check_grads = check
