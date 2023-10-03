@@ -84,6 +84,8 @@ function benchmark_model(
         run_once,
         check,
         check_grads,
+        error_on_failed_check,
+        error_on_failed_backend,
         varinfo,
         sampler,
         context,
