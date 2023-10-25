@@ -51,6 +51,9 @@ function to_backend(x::Union{AbstractString,Symbol})
     return SYMBOL_TO_BACKEND[k]
 end
 
+_default_params(model, varinfo) = rand(Vector, model)
+_default_params_linked(model, varinfo) = randn(length(DynamicPPL.link(varinfo, model)[:]))
+
 """
     benchmark_model(model::Turing.Model; suite_kwargs..., kwargs...)
 
@@ -74,6 +77,8 @@ function benchmark_model(
     varinfo::DynamicPPL.AbstractVarInfo = DynamicPPL.VarInfo(model),
     sampler::Union{AbstractMCMC.AbstractSampler,Nothing} = nothing,
     context::DynamicPPL.AbstractContext = DynamicPPL.DefaultContext(),
+    θ::AbstractVector = _default_params(model, varinfo),
+    θ_linked::AbstractVector = _default_params_linked(model, varinfo),
     atol::Real = 1e-6,
     rtol::Real = 0,
     kwargs...
@@ -117,6 +122,9 @@ Create default benchmark suite for `model`.
 - `varinfo`: the `VarInfo` to use. Defaults to `DynamicPPL.VarInfo(model)`.
 - `sampler`: the `Sampler` to use. Defaults to `nothing` (i.e. no sampler).
 - `context`: the `Context` to use. Defaults to `DynamicPPL.DefaultContext()`.
+- `θ`: the parameters to use. Defaults to `rand(Vector, model)`.
+- `θ_linked`: the linked parameters to use. Defaults to `randn(d)` where `d`
+   is the length of the linked parameters..
 - `atol`: the absolute tolerance to use for comparisons.
 - `rtol`: the relative tolerance to use for comparisons.
 
@@ -136,6 +144,8 @@ function make_turing_suite(
     varinfo::DynamicPPL.AbstractVarInfo = DynamicPPL.VarInfo(model),
     sampler::Union{AbstractMCMC.AbstractSampler,Nothing} = nothing,
     context::DynamicPPL.AbstractContext = DynamicPPL.DefaultContext(),
+    θ::AbstractVector = _default_params(model, varinfo),
+    θ_linked::AbstractVector = _default_params_linked(model, varinfo),
     atol::Real = 1e-6,
     rtol::Real = 0,
 )
@@ -168,12 +178,16 @@ function make_turing_suite(
         suite_backend["standard"] = BenchmarkGroup()
         suite_backend["linked"] = BenchmarkGroup()
 
+        # We construct `LogDensityFunction` using different values
+        # than the ones we're going to use for the test. Some of the AD backends
+        # compiles the tape upon `ADgradient` construction, and so we want to
+        # check that the compiled tape is also correct on inputs which it wasn't
+        # compiled for.
         varinfo_current = DynamicPPL.unflatten(varinfo, context, varinfo[indexer])
         f = LogDensityProblemsAD.ADgradient(
             adbackend,
             DynamicPPL.LogDensityFunction(varinfo_current, model, context)
         )
-        θ = varinfo_current[indexer]
 
         try
             if run_once || check_grads
@@ -196,15 +210,14 @@ function make_turing_suite(
         # Need a separate `VarInfo` for the linked version since otherwise we risk the
         # `varinfo` from above being mutated.
         varinfo_linked = if sampler === nothing
-            DynamicPPL.link!!(deepcopy(varinfo_current), model)
+            DynamicPPL.link(varinfo_current, model)
         else
-            DynamicPPL.link!!(deepcopy(varinfo_current), sampler, model)
+            DynamicPPL.link(varinfo_current, sampler, model)
         end
         f_linked = LogDensityProblemsAD.ADgradient(
             adbackend,
             DynamicPPL.LogDensityFunction(varinfo_linked, model, context)
         )
-        θ_linked = varinfo_linked[indexer]
 
         try
             if run_once || check_grads
@@ -230,9 +243,9 @@ function make_turing_suite(
         $model, $varinfo, $context
     )
     varinfo_linked = if sampler === nothing
-        DynamicPPL.link!!(deepcopy(varinfo), model)
+        DynamicPPL.link(varinfo, model)
     else
-        DynamicPPL.link!!(deepcopy(varinfo), sampler, model)
+        DynamicPPL.link(varinfo, sampler, model)
     end
     suite_evaluation["linked"] = @benchmarkable $(DynamicPPL.evaluate!!)(
         $model, $varinfo_linked, $context
