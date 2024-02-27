@@ -2,6 +2,7 @@ using TuringBenchmarking
 using BenchmarkTools
 using Turing
 using Test
+using ADTypes
 
 using Zygote: Zygote
 using ReverseDiff: ReverseDiff
@@ -134,7 +135,7 @@ ADBACKENDS = TuringBenchmarking.DEFAULT_ADBACKENDS
             @testset "$adbackend" for (i, adbackend) in enumerate(ADBACKENDS)
                 adbackend_string = "$(adbackend)"
                 results_backend = results[@tagged adbackend_string]
-                if adbackend isa TuringBenchmarking.ZygoteAD
+                if adbackend isa AutoZygote
                     # Zygote.jl should fail, i.e. return an empty suite.
                     @test length(BenchmarkTools.leaves(results_backend)) == 0
                 else
