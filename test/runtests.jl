@@ -1,6 +1,6 @@
 using TuringBenchmarking
 using BenchmarkTools
-using Turing
+using DynamicPPL, Distributions, DistributionsAD
 using Test
 using ADTypes
 
@@ -17,7 +17,7 @@ ADBACKENDS = TuringBenchmarking.DEFAULT_ADBACKENDS
 
 @testset "TuringBenchmarking.jl" begin
     @testset "Item-Response model" begin
-        ### Setup ###
+        # Simulate data.
         function sim(I, P)
             yvec = Vector{Int}(undef, I * P)
             ivec = similar(yvec)
@@ -38,12 +38,11 @@ ADBACKENDS = TuringBenchmarking.DEFAULT_ADBACKENDS
         end
         y, i, p, _, _ = sim(5, 3)
 
-        ### Turing ###
-        # performant model
+        # Performant model.
         @model function irt(y, i, p; I=maximum(i), P=maximum(p))
             theta ~ filldist(Normal(), P)
             beta ~ filldist(Normal(), I)
-            Turing.@addlogprob! sum(logpdf.(BernoulliLogit.(theta[p] - beta[i]), y))
+            DynamicPPL.@addlogprob! sum(logpdf.(BernoulliLogit.(theta[p] - beta[i]), y))
 
             return (; theta, beta)
         end

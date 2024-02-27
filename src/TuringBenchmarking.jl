@@ -6,11 +6,12 @@ using BenchmarkTools
 using LogDensityProblems
 using LogDensityProblemsAD
 
-using Turing
+using DynamicPPL
 using ADTypes
 
 using PrettyTables: PrettyTables
 
+using AbstractMCMC: AbstractMCMC
 using DynamicPPL: DynamicPPL
 
 # Load some the default backends to trigger conditional loading.
