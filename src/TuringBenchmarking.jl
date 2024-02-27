@@ -110,8 +110,8 @@ end
 Create default benchmark suite for `model`.
 
 # Keyword arguments
-- `adbackends`: a collection of adbackends to use, specified either as a
- `Turing.Essential.ADBackend` or using a `Symbol`. Defaults to `$(DEFAULT_ADBACKENDS)`.
+- `adbackends`: a collection of adbackends to use, specified either as a type from
+ ADTypes.jl or using a `Symbol`. Defaults to `$(DEFAULT_ADBACKENDS)`.
 - `run_once=true`: if `true`, the body of each benchmark will be run once to avoid
   compilation to be included in the timings (this may occur if compilation runs
   longer than the allowed time limit).
