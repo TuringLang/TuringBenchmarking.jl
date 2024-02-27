@@ -67,12 +67,12 @@ ADBACKENDS = TuringBenchmarking.DEFAULT_ADBACKENDS
                 adbackend_string = "$(adbackend)"
                 results_backend = results[@tagged adbackend_string]
                 # Each AD backend should have two results.
-                @test length(leaves(results_backend)) == 2
+                @test length(BenchmarkTools.leaves(results_backend)) == 2
                 # It should be under the "gradient" section.
                 @test haskey(results_backend, "gradient")
                 # It should have one tagged "linked" and one "standard"
-                @test length(leaves(results_backend[@tagged "linked"])) == 1
-                @test length(leaves(results_backend[@tagged "standard"])) == 1
+                @test length(BenchmarkTools.leaves(results_backend[@tagged "linked"])) == 1
+                @test length(BenchmarkTools.leaves(results_backend[@tagged "standard"])) == 1
             end
         end
 
@@ -89,12 +89,12 @@ ADBACKENDS = TuringBenchmarking.DEFAULT_ADBACKENDS
                 adbackend_string = "$(adbackend)"
                 results_backend = results[@tagged adbackend_string]
                 # Each AD backend should have two results.
-                @test length(leaves(results_backend)) == 2
+                @test length(BenchmarkTools.leaves(results_backend)) == 2
                 # It should be under the "gradient" section.
                 @test haskey(results_backend, "gradient")
                 # It should have one tagged "linked" and one "standard"
-                @test length(leaves(results_backend[@tagged "linked"])) == 1
-                @test length(leaves(results_backend[@tagged "standard"])) == 1
+                @test length(BenchmarkTools.leaves(results_backend[@tagged "linked"])) == 1
+                @test length(BenchmarkTools.leaves(results_backend[@tagged "standard"])) == 1
             end
         end
     end
@@ -136,15 +136,15 @@ ADBACKENDS = TuringBenchmarking.DEFAULT_ADBACKENDS
                 results_backend = results[@tagged adbackend_string]
                 if adbackend isa TuringBenchmarking.ZygoteAD
                     # Zygote.jl should fail, i.e. return an empty suite.
-                    @test length(leaves(results_backend)) == 0
+                    @test length(BenchmarkTools.leaves(results_backend)) == 0
                 else
                     # Each AD backend should have two results.
-                    @test length(leaves(results_backend)) == 2
+                    @test length(BenchmarkTools.leaves(results_backend)) == 2
                     # It should be under the "gradient" section.
                     @test haskey(results_backend, "gradient")
                     # It should have one tagged "linked" and one "standard"
-                    @test length(leaves(results_backend[@tagged "linked"])) == 1
-                    @test length(leaves(results_backend[@tagged "standard"])) == 1
+                    @test length(BenchmarkTools.leaves(results_backend[@tagged "linked"])) == 1
+                    @test length(BenchmarkTools.leaves(results_backend[@tagged "standard"])) == 1
                 end
             end
         end

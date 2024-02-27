@@ -6,12 +6,15 @@ using BenchmarkTools
 using LogDensityProblems
 using LogDensityProblemsAD
 
+using Turing
+using ADTypes
+
 using PrettyTables: PrettyTables
 
-using Turing
-using Turing.Essential: ForwardDiffAD, TrackerAD, ReverseDiffAD, ZygoteAD
 using DynamicPPL: DynamicPPL
 
+# Load some the default backends to trigger conditional loading.
+using ForwardDiff: ForwardDiff
 using ReverseDiff: ReverseDiff
 using Zygote: Zygote
 
@@ -23,28 +26,29 @@ export benchmark_model, make_turing_suite, BenchmarkTools, @tagged
 
 # Don't include `TrackerAD` because it's never going to win.
 const DEFAULT_ADBACKENDS = [
-    ForwardDiffAD{Turing.Essential.CHUNKSIZE[]}(), # chunksize=40
-    ReverseDiffAD{false}(), # rdcache=false
-    ReverseDiffAD{true}(),  # rdcache=false
-    ZygoteAD(),
+    AutoForwardDiff(chunksize=0),
+    AutoReverseDiff(false),
+    AutoReverseDiff(true),
+    AutoZygote(),
 ]
 
-backend_label(::ForwardDiffAD) = "ForwardDiff"
-backend_label(::ReverseDiffAD{false}) = "ReverseDiff"
-backend_label(::ReverseDiffAD{true}) = "ReverseDiff[compiled]"
-backend_label(::ZygoteAD) = "Zygote"
-backend_label(::TrackerAD) = "Tracker"
+backend_label(::AutoForwardDiff) = "ForwardDiff"
+function backend_label(ad::AutoReverseDiff)
+    "ReverseDiff" * (ad.compile ? " [compiled]" : "")
+end
+backend_label(::AutoZygote) = "Zygote"
+backend_label(::AutoTracker) = "Tracker"
 
 const SYMBOL_TO_BACKEND = Dict(
-    :forwarddiff => ForwardDiffAD{Turing.Essential.CHUNKSIZE[]}(),
-    :reversediff => ReverseDiffAD{false}(),
-    :reversediff_compiled => ReverseDiffAD{true}(),
-    :zygote => ZygoteAD(),
-    :tracker => TrackerAD(),
+    :forwarddiff => AutoForwardDiff(chunksize=0),
+    :reversediff => AutoReverseDiff(false),
+    :reversediff_compiled => AutoReverseDiff(true),
+    :zygote => AutoZygote(),
+    :tracker => AutoTracker(),
 )
 
 to_backend(x) = error("Unknown backend: $x")
-to_backend(x::Turing.Essential.ADBackend) = x
+to_backend(x::ADTypes.AbstractADType) = x
 function to_backend(x::Union{AbstractString,Symbol})
     k = Symbol(lowercase(string(x)))
     haskey(SYMBOL_TO_BACKEND, k) || error("Unknown backend: $x")

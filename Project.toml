@@ -1,11 +1,13 @@
 name = "TuringBenchmarking"
 uuid = "0db1332d-5c25-4deb-809f-459bc696f94f"
 authors = ["Tor Erlend Fjelde <tor.erlend95@gmail.com> and contributors"]
-version = "0.3.4"
+version = "0.4.0"
 
 [deps]
+ADTypes = "47edcb42-4c32-4615-8424-f2b9edc5f35b"
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 DynamicPPL = "366bfd00-2699-11ea-058f-f148b4cae6d8"
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 LogDensityProblems = "6fdf6af0-433a-55f7-b3ed-c6c6e0b8df7c"
 LogDensityProblemsAD = "996a588d-648d-4e1f-a8f0-a84b347e47b1"
@@ -30,7 +32,7 @@ LogDensityProblemsAD = "1"
 PrettyTables = "2"
 Requires = "1"
 ReverseDiff = "1.14"
-Turing = "0.29"
+Turing = "0.30"
 Zygote = "0.6"
 julia = "1.6"
 
