@@ -33,12 +33,14 @@ const DEFAULT_ADBACKENDS = [
     AutoZygote(),
 ]
 
+backend_label(x) = "$x"
 backend_label(::AutoForwardDiff) = "ForwardDiff"
 function backend_label(ad::AutoReverseDiff)
     "ReverseDiff" * (ad.compile ? " [compiled]" : "")
 end
 backend_label(::AutoZygote) = "Zygote"
 backend_label(::AutoTracker) = "Tracker"
+backend_label(::AutoEnzyme) = "Enzyme"
 
 const SYMBOL_TO_BACKEND = Dict(
     :forwarddiff => AutoForwardDiff(chunksize=0),
