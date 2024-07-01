@@ -28,8 +28,8 @@ export benchmark_model, make_turing_suite, BenchmarkTools, @tagged
 # Don't include `TrackerAD` because it's never going to win.
 const DEFAULT_ADBACKENDS = [
     AutoForwardDiff(chunksize=0),
-    AutoReverseDiff(false),
-    AutoReverseDiff(true),
+    AutoReverseDiff(compile=false),
+    AutoReverseDiff(compile=true),
     AutoZygote(),
 ]
 
@@ -44,8 +44,8 @@ backend_label(::AutoEnzyme) = "Enzyme"
 
 const SYMBOL_TO_BACKEND = Dict(
     :forwarddiff => AutoForwardDiff(chunksize=0),
-    :reversediff => AutoReverseDiff(false),
-    :reversediff_compiled => AutoReverseDiff(true),
+    :reversediff => AutoReverseDiff(compile=false),
+    :reversediff_compiled => AutoReverseDiff(compile=true),
     :zygote => AutoZygote(),
     :tracker => AutoTracker(),
 )
