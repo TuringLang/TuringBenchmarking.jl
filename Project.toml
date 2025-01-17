@@ -1,7 +1,7 @@
 name = "TuringBenchmarking"
 uuid = "0db1332d-5c25-4deb-809f-459bc696f94f"
 authors = ["Tor Erlend Fjelde <tor.erlend95@gmail.com> and contributors"]
-version = "0.5.7"
+version = "0.5.8"
 
 [deps]
 ADTypes = "47edcb42-4c32-4615-8424-f2b9edc5f35b"
@@ -28,7 +28,7 @@ ADTypes = "0.2, 1"
 AbstractMCMC = "5"
 BenchmarkTools = "1"
 BridgeStan = "2"
-DynamicPPL = "0.24.7, 0.25, 0.27, 0.28, 0.29, 0.30, 0.31, 0.32"
+DynamicPPL = "0.24.7, 0.25, 0.27, 0.28, 0.29, 0.30, 0.31, 0.32, 0.33, 0.34"
 ForwardDiff = "0.10.3"
 LogDensityProblems = "2"
 LogDensityProblemsAD = "1"
