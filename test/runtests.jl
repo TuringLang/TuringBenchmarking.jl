@@ -6,6 +6,8 @@ using ADTypes
 
 using Zygote: Zygote
 using ReverseDiff: ReverseDiff
+using Mooncake: Mooncake
+import DifferentiationInterface
 
 # Just make things run a bit faster.
 BenchmarkTools.DEFAULT_PARAMETERS.seconds = 1
@@ -80,7 +82,7 @@ ADBACKENDS = TuringBenchmarking.DEFAULT_ADBACKENDS
             varinfo = DynamicPPL.VarInfo(model)
             suite = TuringBenchmarking.make_turing_suite(
                 model;
-                adbackends=[:forwarddiff, :reversediff, :reversediff_compiled, :zygote],
+                adbackends=[:forwarddiff, :reversediff, :reversediff_compiled, :zygote, :mooncake],
                 varinfo=varinfo,
             )
             results = run(suite, verbose=true)

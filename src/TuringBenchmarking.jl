@@ -18,6 +18,7 @@ using DynamicPPL: DynamicPPL
 using ForwardDiff: ForwardDiff
 using ReverseDiff: ReverseDiff
 using Zygote: Zygote
+using Mooncake: Mooncake
 
 if !isdefined(Base, :get_extension)
     using Requires
@@ -31,16 +32,18 @@ const DEFAULT_ADBACKENDS = [
     AutoReverseDiff(compile=false),
     AutoReverseDiff(compile=true),
     AutoZygote(),
+    AutoMooncake(; config=nothing),
 ]
 
 backend_label(x) = "$x"
 backend_label(::AutoForwardDiff) = "ForwardDiff"
-function backend_label(ad::AutoReverseDiff)
-    "ReverseDiff" * (ad.compile ? " [compiled]" : "")
+function backend_label(::AutoReverseDiff{compiled}) where compiled
+    "ReverseDiff" * (compiled ? " [compiled]" : "")
 end
 backend_label(::AutoZygote) = "Zygote"
 backend_label(::AutoTracker) = "Tracker"
 backend_label(::AutoEnzyme) = "Enzyme"
+backend_label(::AutoMooncake) = "Mooncake"
 
 const SYMBOL_TO_BACKEND = Dict(
     :forwarddiff => AutoForwardDiff(chunksize=0),
@@ -48,6 +51,7 @@ const SYMBOL_TO_BACKEND = Dict(
     :reversediff_compiled => AutoReverseDiff(compile=true),
     :zygote => AutoZygote(),
     :tracker => AutoTracker(),
+    :mooncake => AutoMooncake(; config=nothing),
 )
 
 to_backend(x) = error("Unknown backend: $x")
