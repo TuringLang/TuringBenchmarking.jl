@@ -6,6 +6,8 @@ using ADTypes
 
 using Zygote: Zygote
 using ReverseDiff: ReverseDiff
+using Mooncake: Mooncake
+import DifferentiationInterface
 
 # Just make things run a bit faster.
 BenchmarkTools.DEFAULT_PARAMETERS.seconds = 1
