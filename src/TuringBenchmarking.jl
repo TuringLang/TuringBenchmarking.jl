@@ -18,6 +18,7 @@ using DynamicPPL: DynamicPPL
 using ForwardDiff: ForwardDiff
 using ReverseDiff: ReverseDiff
 using Zygote: Zygote
+using Mooncake: Mooncake
 
 if !isdefined(Base, :get_extension)
     using Requires
@@ -31,6 +32,7 @@ const DEFAULT_ADBACKENDS = [
     AutoReverseDiff(compile=false),
     AutoReverseDiff(compile=true),
     AutoZygote(),
+    AutoMooncake(; config=nothing),
 ]
 
 backend_label(x) = "$x"
