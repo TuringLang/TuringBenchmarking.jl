@@ -82,7 +82,7 @@ ADBACKENDS = TuringBenchmarking.DEFAULT_ADBACKENDS
             varinfo = DynamicPPL.VarInfo(model)
             suite = TuringBenchmarking.make_turing_suite(
                 model;
-                adbackends=[:forwarddiff, :reversediff, :reversediff_compiled, :zygote],
+                adbackends=[:forwarddiff, :reversediff, :reversediff_compiled, :zygote, :mooncake],
                 varinfo=varinfo,
             )
             results = run(suite, verbose=true)
