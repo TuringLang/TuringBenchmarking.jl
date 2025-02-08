@@ -18,9 +18,3 @@ makedocs(;
         "Home" => "index.md",
     ],
 )
-
-deploydocs(;
-    repo="github.com/TuringLang/TuringBenchmarking.jl",
-    devbranch="main",
-    push_preview=true,
-)
